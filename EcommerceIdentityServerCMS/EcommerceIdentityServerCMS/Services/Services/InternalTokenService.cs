@@ -11,14 +11,14 @@ namespace EcommerceIdentityServerCMS.Services.Services
     {
         private readonly HttpClient _httpClient;
         private readonly IConfiguration _configuration;
-        private readonly IDictionary<string, ServiceAuthOptions> _configs;
+        private readonly ServiceAuthOptions _configs;
         private readonly ILogger<InternalTokenService> _logger;
 
         public InternalTokenService(
             HttpClient httpClient,
             IConfiguration configuration,
             ILogger<InternalTokenService> logger,
-            IOptions<Dictionary<string, ServiceAuthOptions>> options)
+            IOptions<ServiceAuthOptions> options)
         {
             _httpClient = httpClient;
             _configuration = configuration;
@@ -30,32 +30,23 @@ namespace EcommerceIdentityServerCMS.Services.Services
         // PUBLIC API
         // =========================
 
-        public Task<TokenResponseDto?> GetSystemTokenAsync(string serviceName)
+        public Task<TokenResponseDto?> GetSystemTokenAsync()
         {
-            return RequestTokenAsync(serviceName, null);
+            return RequestTokenAsync();
         }
 
-        public Task<TokenResponseDto?> GetUserScopedTokenAsync(
-            string serviceName,
-            SignInResponseDto userContext)
-        {
-            return RequestTokenAsync(serviceName, userContext);
-        }
         public async Task<TokenResponseDto?> ExchangeAuthorizationCodeAsync(
-            string serviceName,
+            ServiceAuthOptions serviceAuthOptions,
             ExchangeRequest exchangeRequest
             )
         {
             if (string.IsNullOrWhiteSpace(exchangeRequest.Code))
                 throw new UnauthorizedException("Thiếu authorization_code");
 
-            if (!_configs.TryGetValue(serviceName, out var cfg))
-                throw new UnauthorizedException($"Không có cấu hình OAuth cho {serviceName}");
-
             var form = new Dictionary<string, string> {
                 ["grant_type"] = "authorization_code",
-                ["client_id"] = cfg.ClientId,
-                ["client_secret"] = cfg.ClientSecret,
+                ["client_id"] = serviceAuthOptions.ClientId,
+                ["client_secret"] = serviceAuthOptions.ClientSecret,
                 ["code"] = exchangeRequest.Code,
                 ["code_verifier"] = exchangeRequest.CodeVerifier,
                 ["redirect_uri"] = exchangeRequest.RedirectUri
@@ -73,7 +64,7 @@ namespace EcommerceIdentityServerCMS.Services.Services
             {
                 _logger.LogError(ex,
                     "Failed to exchange authorization_code for service {Service}",
-                    serviceName);
+                    serviceAuthOptions.ClientId);
                 throw;
             }
 
@@ -82,7 +73,7 @@ namespace EcommerceIdentityServerCMS.Services.Services
                 var error = await response.Content.ReadAsStringAsync();
                 _logger.LogWarning(
                     "Token endpoint rejected code for {Service}: {Error}",
-                    serviceName,
+                    serviceAuthOptions.ClientId,
                     error);
 
                 throw new UnauthorizedException("authorization_code không hợp lệ hoặc đã hết hạn");
@@ -106,15 +97,9 @@ namespace EcommerceIdentityServerCMS.Services.Services
         // CORE
         // =========================
 
-        private async Task<TokenResponseDto?> RequestTokenAsync(
-            string serviceName,
-            SignInResponseDto? userContext)
+        private async Task<TokenResponseDto?> RequestTokenAsync()
         {
-            if (!_configs.TryGetValue(serviceName, out var cfg))
-                throw new InvalidOperationException($"No auth config for service: {serviceName}");
-
-            var form = BuildTokenRequestForm(cfg, userContext);
-
+            var form = BuildTokenRequestForm(_configs);
             HttpResponseMessage response;
             try
             {
@@ -124,7 +109,7 @@ namespace EcommerceIdentityServerCMS.Services.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Token request failed for service {Service}", serviceName);
+                _logger.LogError(ex, "Token request failed for service {Service}", _configs.ClientId);
                 throw;
             }
 
@@ -133,7 +118,7 @@ namespace EcommerceIdentityServerCMS.Services.Services
                 var error = await response.Content.ReadAsStringAsync();
                 _logger.LogWarning(
                     "Token endpoint rejected request for {Service}: {Error}",
-                    serviceName,
+                    _configs.ClientId,
                     error);
 
                 throw new ForbiddenException("Không có quyền truy cập service này");
@@ -155,22 +140,15 @@ namespace EcommerceIdentityServerCMS.Services.Services
         // =========================
 
         private static Dictionary<string, string> BuildTokenRequestForm(
-         ServiceAuthOptions cfg,
-         SignInResponseDto? userContext)
+         ServiceAuthOptions cfg)
         {
             var form = new Dictionary<string, string> {
                 ["grant_type"] = cfg.GrantType,
                 ["client_id"] = cfg.ClientId,
                 ["client_secret"] = cfg.ClientSecret
             };
-
-            // TRƯỜNG HỢP 1: System-to-System (S2S) - Giữ nguyên
-            if (userContext == null)
-            {
-                if (!string.IsNullOrEmpty(cfg.Scope))
-                    form["scope"] = cfg.Scope;
-
-            }
+            if (!string.IsNullOrEmpty(cfg.Scope))
+                form["scope"] = cfg.Scope;
             return form;
         }
     }

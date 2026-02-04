@@ -24,14 +24,15 @@ namespace EcommerceIdentityServerCMS.Services.Services
         private readonly JwtSettings _jwtSettings;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IDistributedCache _cache;
-
+        private readonly IClientService _clientService;
         private readonly ILogger<AuthService> _logger;
+
         public AuthService(HttpClient httpClient,
             IInternalTokenService tokenService,
             IConfiguration configuration,
             ILogger<AuthService> logger, IOptions<JwtSettings> jwtSettings,
             IHttpContextAccessor httpContextAccessor,
-            IDistributedCache cache)
+            IDistributedCache cache, IClientService clientService)
         {
             _configuration = configuration;
             _httpClient = httpClient;
@@ -40,13 +41,15 @@ namespace EcommerceIdentityServerCMS.Services.Services
             _jwtSettings = jwtSettings.Value;
             _httpContextAccessor = httpContextAccessor;
             _cache = cache;
+            _clientService = clientService;
         }
 
         public async Task<SignInResponseDto?> AuthenticateInternal(SignInViewModel signInViewModel)
         {
-            var token = await _tokenService.GetSystemTokenAsync(ServiceAuth.APIGatewayCMSService.ToString());
-            _logger.LogInformation($"token {token.AccessToken}");
+            //lấy token nội bộ cho identity cms gọi user service check thông tin đăng nhập
+            var token = await _tokenService.GetSystemTokenAsync();
             if (token == null) throw new UnauthorizedException("Yêu cầu không được chấp nhận");
+            _logger.LogInformation($"token {token.AccessToken}");
             _httpClient.DefaultRequestHeaders.Authorization =
                     new AuthenticationHeaderValue("Bearer", token.AccessToken);
 
@@ -110,10 +113,10 @@ namespace EcommerceIdentityServerCMS.Services.Services
                 throw new UnauthorizedException("Thiếu X-App-Name");
 
 
-
+            var serviceAuthOptions = await BuildAuthOptions(exchangeRequest);
             // 🔥 Exchange authorization_code → access_token (IdentityServer)
             var token = await _tokenService.ExchangeAuthorizationCodeAsync(
-                appName,
+                serviceAuthOptions,
               exchangeRequest
             );
 
@@ -125,5 +128,47 @@ namespace EcommerceIdentityServerCMS.Services.Services
                 "Thông tin token được cấp phát thành công"
             );
         }
+
+        /// <summary>
+        /// lấy ClientId và ClientSecret để dùng
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        /// <exception cref="UnauthorizedException"></exception>
+        private async Task<ServiceAuthOptions> BuildAuthOptions(ExchangeRequest request)
+        {
+            var httpContext = _httpContextAccessor.HttpContext
+                ?? throw new UnauthorizedException("Không tìm thấy ngữ cảnh HTTP.");
+
+            // 1. Lấy ClientId và ClientSecret từ Basic Auth Header
+            var (clientId, clientSecret) = BasicAuthHelper.GetCredentials(httpContext.Request);
+
+            if (string.IsNullOrEmpty(clientId))
+            {
+                throw new UnauthorizedException("ClientId không hợp lệ trong Header.");
+            }
+
+            // 2. Lấy danh sách Scope được phép từ Database thay vì đọc từ Client hay Config
+            // Điều này đảm bảo tính bảo mật tuyệt đối theo đúng cấu hình hệ thống.
+            var allowedScopes = await _clientService.GetAllowedScopesAsync(clientId);
+
+            if (string.IsNullOrEmpty(allowedScopes))
+            {
+                _logger.LogWarning("Client {ClientId} không có bất kỳ Scope nào được cấu hình trong DB.", clientId);
+                // Bạn có thể mặc định cấp openid profile hoặc báo lỗi tùy logic
+                allowedScopes = "openid profile";
+            }
+
+
+            _logger.LogInformation("Building AuthOptions for Client: {ClientId}, Scopes: {Scopes}", clientId, allowedScopes);
+
+            return new ServiceAuthOptions {
+                ClientId = clientId,
+                ClientSecret = clientSecret ?? string.Empty,
+                GrantType = "authorization_code",
+                Scope = allowedScopes // Gán chuỗi Scope vừa lấy từ DB
+            };
+        }
+
     }
 }

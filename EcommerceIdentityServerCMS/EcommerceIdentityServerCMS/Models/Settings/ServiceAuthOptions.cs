@@ -2,9 +2,6 @@
 {
     public class ServiceAuthOptions
     {
-        // Tên định danh của Service (ví dụ: personnel.api)
-        public string ServiceName { get; set; } = string.Empty;
-
         // ClientId đã đăng ký trong IdentityServer (Database)
         public string ClientId { get; set; } = string.Empty;
 

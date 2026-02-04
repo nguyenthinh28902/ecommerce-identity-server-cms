@@ -1,4 +1,5 @@
-﻿using EcommerceIdentityServerCMS.Services.Services;
+﻿using EcommerceIdentityServerCMS.Services.Interfaces;
+using EcommerceIdentityServerCMS.Services.Services;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
 
@@ -52,6 +53,9 @@ public static class AuthenticationIdentityServer
         })
         .AddDeveloperSigningCredential()
         .AddProfileService<GatewayUserProfileService>();
+
+        // Đăng ký Service của bạn
+        services.AddScoped<IClientService, ClientService>();
 
         return services;
     }
