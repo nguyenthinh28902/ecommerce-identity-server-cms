@@ -1,4 +1,5 @@
-﻿using EcommerceIdentityServerCMS.Services.Interfaces;
+﻿using EcommerceIdentityServerCMS.Models.Settings;
+using EcommerceIdentityServerCMS.Services.Interfaces;
 using EcommerceIdentityServerCMS.Services.Services;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
@@ -9,8 +10,10 @@ public static class AuthenticationIdentityServer
     {
         var migrationsAssembly = typeof(AuthenticationIdentityServer).GetTypeInfo().Assembly.GetName().Name;
         var connectionString = configuration.GetConnectionString("EcomCMS_IdentityServer_DB");
-
-        var EcommerceMVCCMS = configuration["EcommerceMVCCMS:BaseUrl"];
+        var configServiceUrl = configuration.GetSection(nameof(ConfigServiceUrl)).Get<ConfigServiceUrl>();
+        if (configServiceUrl == null || connectionString == null)
+            throw new ArgumentNullException($"Không tìm thấy cấu hình trong appsettings.{nameof(AddAuthenticationIdentityServer)}");
+        var EcommerceMVCCMS = configServiceUrl.EcommerceMVCCMS;
         var RedisConnectionString = configuration["RedisConnection:RedisConnectionString"];
         var InstanceName = configuration["RedisConnection:InstanceName"];
 
@@ -54,7 +57,7 @@ public static class AuthenticationIdentityServer
         .AddDeveloperSigningCredential()
         .AddProfileService<GatewayUserProfileService>();
 
-        // Đăng ký Service của bạn
+        // Đăng ký Service
         services.AddScoped<IClientService, ClientService>();
 
         return services;

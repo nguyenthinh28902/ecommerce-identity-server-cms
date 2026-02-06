@@ -8,21 +8,16 @@ namespace EcommerceIdentityServerCMS.Common.Helpers
     {
         public static IServiceCollection AddAuthenticationExtensions(this IServiceCollection services, IConfiguration configuration)
         {
-
-
-            // 1. Kiểm tra cấu hình rõ ràng hơn
-            var jwtSettings = configuration.GetSection("JwtSettings").Get<JwtSettings>()
-                ?? throw new InvalidOperationException("Config Error: 'JwtSettings' is missing in appsettings.json");
-
-            // 2. Cấu hình CORS (Giữ nguyên vì Nuxt cần cái này)
+            var configServiceUrl = configuration.GetSection(nameof(ConfigServiceUrl)).Get<ConfigServiceUrl>();
+            if (configServiceUrl == null) throw new ArgumentNullException($"Không tìm thấy cấu hình trong appsettings.{nameof(AddAuthenticationExtensions)}");
             services.AddCors(options =>
             {
-                options.AddPolicy(AuthEnum.AllowNuxtCMS.ToString(), policy =>
+                options.AddPolicy(AuthEnum.AllowWebCMS.ToString(), policy =>
                 {
-                    var nuxtUrl = configuration["EcommerceMVCCMS:BaseUrl"];
-                    if (!string.IsNullOrEmpty(nuxtUrl))
+                    var EcommerceMVCCMS = configServiceUrl.EcommerceMVCCMS;
+                    if (!string.IsNullOrEmpty(EcommerceMVCCMS))
                     {
-                        policy.WithOrigins(nuxtUrl)
+                        policy.WithOrigins(EcommerceMVCCMS)
                               .AllowAnyHeader()
                               .AllowAnyMethod()
                               .AllowCredentials();
@@ -34,10 +29,11 @@ namespace EcommerceIdentityServerCMS.Common.Helpers
             services.ConfigureApplicationCookie(options =>
             {
                 options.Cookie.Name = "identity_auth_session";
-                options.Cookie.SameSite = SameSiteMode.None; // Cho phép Cross-site (Nuxt gọi Identity)
-                options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // Bắt buộc HTTPS
-                options.ExpireTimeSpan = TimeSpan.FromHours(hours); // Phiên đăng nhập sống trong 8 giờ
-                options.SlidingExpiration = true; // Tự động gia hạn nếu user còn hoạt động
+                // Đổi về Lax vì đi qua Gateway/Cùng Domain chính sẽ an toàn và dễ chịu hơn
+                options.Cookie.SameSite = SameSiteMode.Lax;
+                options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+                options.ExpireTimeSpan = TimeSpan.FromHours(hours);
+                options.SlidingExpiration = true;
             });
 
             return services;

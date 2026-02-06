@@ -2,7 +2,7 @@
 {
     public enum AuthEnum
     {
-        AllowNuxtCMS,
+        AllowWebCMS,
         EcommerceIdentityCMS
     }
     public enum ClaimCustom

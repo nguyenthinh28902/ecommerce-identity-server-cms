@@ -1,12 +1,13 @@
 ﻿using Duende.IdentityServer;
 using Duende.IdentityServer.Models;
 using EcommerceIdentityServerCMS.Models.Enums;
+using EcommerceIdentityServerCMS.Models.Settings;
 
 namespace EcommerceIdentityServerCMS.Common.Helpers.Identity.Config
 {
     public static class Clients
     {
-        public static IEnumerable<Client> Get(string baseUrl)
+        public static IEnumerable<Client> Get(ConfigServiceUrl configServiceUrl)
         {
             return new[]
             {
@@ -26,7 +27,7 @@ namespace EcommerceIdentityServerCMS.Common.Helpers.Identity.Config
                 },
                 new Client
                 {
-                    ClientId = "APIGatewayCMS.internal",
+                    ClientId = "APIGatewayCMS",
                     ClientSecrets = { new Secret("gateway-secret".Sha256()) },
 
                     AllowedGrantTypes = GrantTypes.ClientCredentials,
@@ -54,11 +55,9 @@ namespace EcommerceIdentityServerCMS.Common.Helpers.Identity.Config
 
                     ClientSecrets = { new Secret("netmvc_secret_key_123".Sha256()) },
 
-                    RedirectUris = { $"{baseUrl}/auth/callback" },
-                    PostLogoutRedirectUris = { baseUrl },
-    
-                    // Cho phép Nuxt nhận thông báo đăng xuất qua front-channel
-                    FrontChannelLogoutUri = $"{baseUrl}/auth/dang-xuat",
+                    RedirectUris = { $"{configServiceUrl.EcommerceMVCCMS}/signin-oidc" },
+                    PostLogoutRedirectUris = { $"{configServiceUrl.EcommerceMVCCMS}/signout-callback-oidc" },
+   
                     // Quan trọng cho UX
                     RequireConsent = false,
 
@@ -67,6 +66,7 @@ namespace EcommerceIdentityServerCMS.Common.Helpers.Identity.Config
                         IdentityServerConstants.StandardScopes.OpenId,
                         IdentityServerConstants.StandardScopes.Profile,
                         IdentityServerConstants.StandardScopes.Email,
+                        "offline_access",
                         "user.read",
                         "user.write",
                         "product.read",

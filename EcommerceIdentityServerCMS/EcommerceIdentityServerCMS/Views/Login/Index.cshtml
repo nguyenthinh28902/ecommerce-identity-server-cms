@@ -1,22 +1,16 @@
 ﻿@using EcommerceIdentityServerCMS.Models.ViewModels.Accounts
-
 @model SignInViewModel
 
 @{
     Layout = null;
     ViewData["Title"] = "Đăng nhập hệ thống";
-    // Định nghĩa class chung cho các ô nhập liệu để gọn code
+    // Định nghĩa class chung cho các ô nhập liệu để đảm bảo tính đồng nhất [cite: 2]
     var inputControlClass = "w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#42d392] focus:border-transparent transition";
 }
 
 <script src="https://cdn.tailwindcss.com"></script>
 
 <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#e0f7f0] to-[#ffffff] font-sans text-[#2c3e50]">
-
-@*     <div class="absolute top-5 right-5 flex gap-2">
-        <span class="px-3 py-1 bg-[#42d392] text-white rounded-md text-xs font-bold cursor-pointer">VN</span>
-        <span class="px-3 py-1 bg-white border border-gray-200 text-gray-500 rounded-md text-xs font-bold cursor-pointer">EN</span>
-    </div> *@
 
     <div class="bg-white p-10 rounded-[40px] shadow-2xl w-full max-w-[500px] text-center border border-white">
 
@@ -30,13 +24,20 @@
             @using (Html.BeginForm("SignIn", "Auth", FormMethod.Post, new { @class = "space-y-5 text-left" }))
             {
                 @Html.AntiForgeryToken()
+                @if (!ViewData.ModelState.IsValid)
+                {
+                    <div class="bg-red-50 border-l-4 border-red-500 p-3 mb-4">
+                        @Html.ValidationSummary(true, "", new { @class = "text-red-600 text-xs" })
+                    </div>
+                }
 
                 <div>
                     @Html.HiddenFor(m => m.ReturnUrl)
+
                     @Html.LabelFor(m => m.UserId, new { @class = "block text-sm font-semibold text-gray-700 mb-1" })
                     @Html.TextBoxFor(m => m.UserId, new {
                     @class = inputControlClass,
-                                @type = "number",
+                                @type = "number", // Giữ nguyên type number theo thiết kế của bạn [cite: 6]
                                 @placeholder = "Nhập mã người dùng (ID)..."
                                 })
                 @Html.ValidationMessageFor(m => m.UserId, "", new { @class = "text-red-500 text-xs mt-1" })
@@ -66,8 +67,7 @@
     </div>
 </div>
 
-@section Scripts {
-    @{
-        await Html.RenderPartialAsync("_ValidationScriptsPartial");
-    }
-}
+@* Script hỗ trợ kiểm tra dữ liệu ngay tại trình duyệt  *@
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+<script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+<script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>

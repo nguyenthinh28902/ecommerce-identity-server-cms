@@ -1,4 +1,5 @@
-﻿using EcommerceIdentityServerCMS.Common.Helpers;
+﻿using EcommerceIdentityServerCMS.Common.Exceptions;
+using EcommerceIdentityServerCMS.Common.Helpers;
 using EcommerceIdentityServerCMS.Common.Helpers.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -27,9 +28,10 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI(options => options.DisplayRequestDuration());
 }
-
+app.UseMiddleware<ExceptionMiddleware>();
 app.UseHttpsRedirection();
 app.UseStaticFiles(); // Thêm dòng này nếu có giao diện Login UI
+app.UseCookiePolicy();
 app.UseIdentityServer();
 app.UseAuthorization();
 

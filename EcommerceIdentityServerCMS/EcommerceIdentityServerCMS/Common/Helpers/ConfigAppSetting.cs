@@ -6,9 +6,8 @@ namespace EcommerceIdentityServerCMS.Common.Helpers
     {
         public static IServiceCollection AddConfigAppSetting(this IServiceCollection services, IConfiguration configuration)
         {
-            services.Configure<JwtSettings>(
-             configuration.GetSection("JwtSettings"));
-            services.Configure<ServiceAuthOptions>(configuration.GetSection("ServiceAuth"));
+            services.Configure<InternalAuthOptions>(configuration.GetSection(nameof(InternalAuthOptions)));
+            services.Configure<ConfigServiceUrl>(configuration.GetSection(nameof(ConfigServiceUrl)));
             return services;
         }
     }

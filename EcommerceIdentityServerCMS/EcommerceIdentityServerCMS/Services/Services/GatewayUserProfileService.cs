@@ -1,6 +1,5 @@
 ﻿using Duende.IdentityServer.Models;
 using Duende.IdentityServer.Services;
-using Microsoft.Extensions.Caching.Distributed;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
@@ -8,12 +7,10 @@ namespace EcommerceIdentityServerCMS.Services.Services
 {
     public class GatewayUserProfileService : IProfileService
     {
-        private readonly IDistributedCache _cache;
         private readonly ILogger<GatewayUserProfileService> _logger;
 
-        public GatewayUserProfileService(IDistributedCache cache, ILogger<GatewayUserProfileService> logger)
+        public GatewayUserProfileService(ILogger<GatewayUserProfileService> logger)
         {
-            _cache = cache;
             _logger = logger;
         }
 

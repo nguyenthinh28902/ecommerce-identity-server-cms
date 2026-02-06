@@ -1,9 +1,9 @@
-﻿using EcommerceIdentityServerCMS.Common.Exceptions;
+﻿using Duende.IdentityModel.Client;
+using EcommerceIdentityServerCMS.Models;
 using EcommerceIdentityServerCMS.Models.DTOs.SignIn;
 using EcommerceIdentityServerCMS.Models.Settings;
 using EcommerceIdentityServerCMS.Services.Interfaces;
 using Microsoft.Extensions.Options;
-using System.Text.Json;
 
 namespace EcommerceIdentityServerCMS.Services.Services
 {
@@ -11,145 +11,76 @@ namespace EcommerceIdentityServerCMS.Services.Services
     {
         private readonly HttpClient _httpClient;
         private readonly IConfiguration _configuration;
-        private readonly ServiceAuthOptions _configs;
+        private readonly InternalAuthOptions _authServiceConfigs;
         private readonly ILogger<InternalTokenService> _logger;
+        private readonly IInternalCacheService _internalCacheService;
 
         public InternalTokenService(
             HttpClient httpClient,
             IConfiguration configuration,
             ILogger<InternalTokenService> logger,
-            IOptions<ServiceAuthOptions> options)
+            IOptions<InternalAuthOptions> options,
+            IInternalCacheService internalCacheService)
         {
             _httpClient = httpClient;
             _configuration = configuration;
             _logger = logger;
-            _configs = options.Value;
+            _authServiceConfigs = options.Value;
+            _internalCacheService = internalCacheService;
         }
 
-        // =========================
-        // PUBLIC API
-        // =========================
-
-        public Task<TokenResponseDto?> GetSystemTokenAsync()
+        /// <summary>
+        /// hàm get token nội bộ
+        /// </summary>
+        /// <returns></returns>
+        public async Task<TokenResponseDto?> GetSystemTokenAsync()
         {
-            return RequestTokenAsync();
-        }
+            // 1. Định nghĩa key (Service sẽ tự thêm prefix "InternalAuth:" để tránh trùng với Gateway)
+            string cacheKey = $"{AuthCacheOptions.Token_user_internal}{_authServiceConfigs.ClientId}";
 
-        public async Task<TokenResponseDto?> ExchangeAuthorizationCodeAsync(
-            ServiceAuthOptions serviceAuthOptions,
-            ExchangeRequest exchangeRequest
-            )
-        {
-            if (string.IsNullOrWhiteSpace(exchangeRequest.Code))
-                throw new UnauthorizedException("Thiếu authorization_code");
-
-            var form = new Dictionary<string, string> {
-                ["grant_type"] = "authorization_code",
-                ["client_id"] = serviceAuthOptions.ClientId,
-                ["client_secret"] = serviceAuthOptions.ClientSecret,
-                ["code"] = exchangeRequest.Code,
-                ["code_verifier"] = exchangeRequest.CodeVerifier,
-                ["redirect_uri"] = exchangeRequest.RedirectUri
-            };
-
-            HttpResponseMessage response;
             try
             {
-                response = await _httpClient.PostAsync(
-                    _configuration["InternalAuth:TokenEndpoint"],
-                    new FormUrlEncodedContent(form)
-                );
+                // 2. Kiểm tra từ Redis (thông qua InternalCacheService)
+                var cachedToken = await _internalCacheService.GetAsync<TokenResponseDto>(cacheKey);
+                if (cachedToken != null && cachedToken.IsLogged)
+                {
+                    return cachedToken;
+                }
+
+                // 3. Nếu Cache hụt (Miss), mới thực hiện xin Token từ Identity Server
+                var tokenResponse = await _httpClient.RequestClientCredentialsTokenAsync(new ClientCredentialsTokenRequest {
+                    Address = _authServiceConfigs.TokenEndpoint,
+                    ClientId = _authServiceConfigs.ClientId,
+                    ClientSecret = _authServiceConfigs.ClientSecret,
+                    Scope = "user.internal"
+                });
+
+                if (tokenResponse == null || tokenResponse.IsError)
+                {
+                    _logger.LogWarning("Token request rejected: {Error} - {Description}",
+                        tokenResponse?.Error, tokenResponse?.ErrorDescription);
+
+                    return new TokenResponseDto { IsLogged = false };
+                }
+
+                // 4. Khởi tạo Object kết quả
+                var token = new TokenResponseDto {
+                    AccessToken = tokenResponse.AccessToken ?? string.Empty,
+                    ExpiresIn = tokenResponse.ExpiresIn,
+                    IsLogged = true
+                };
+
+                // 5. Lưu vào Redis thông qua Service
+                // Trừ đi 60 giây trừ hao thời gian mạng (Network Latency)
+                await _internalCacheService.SetAsync(cacheKey, token, tokenResponse.ExpiresIn - 60);
+
+                return token;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex,
-                    "Failed to exchange authorization_code for service {Service}",
-                    serviceAuthOptions.ClientId);
-                throw;
+                _logger.LogError(ex, "Lỗi nghiêm trọng khi xử lý xin token nội bộ cho {ClientId}", _authServiceConfigs.ClientId);
+                return new TokenResponseDto { IsLogged = false };
             }
-
-            if (!response.IsSuccessStatusCode)
-            {
-                var error = await response.Content.ReadAsStringAsync();
-                _logger.LogWarning(
-                    "Token endpoint rejected code for {Service}: {Error}",
-                    serviceAuthOptions.ClientId,
-                    error);
-
-                throw new UnauthorizedException("authorization_code không hợp lệ hoặc đã hết hạn");
-            }
-
-            var json = await response.Content.ReadAsStringAsync();
-
-            var token = JsonSerializer.Deserialize<TokenResponseDto>(
-                json,
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
-            );
-
-            if (!string.IsNullOrEmpty(token?.AccessToken))
-                token.IsLogged = true;
-
-            return token;
-        }
-
-
-        // =========================
-        // CORE
-        // =========================
-
-        private async Task<TokenResponseDto?> RequestTokenAsync()
-        {
-            var form = BuildTokenRequestForm(_configs);
-            HttpResponseMessage response;
-            try
-            {
-                response = await _httpClient.PostAsync(
-                    _configuration["InternalAuth:TokenEndpoint"],
-                    new FormUrlEncodedContent(form));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Token request failed for service {Service}", _configs.ClientId);
-                throw;
-            }
-
-            if (!response.IsSuccessStatusCode)
-            {
-                var error = await response.Content.ReadAsStringAsync();
-                _logger.LogWarning(
-                    "Token endpoint rejected request for {Service}: {Error}",
-                    _configs.ClientId,
-                    error);
-
-                throw new ForbiddenException("Không có quyền truy cập service này");
-            }
-
-            var content = await response.Content.ReadAsStringAsync();
-            var token = JsonSerializer.Deserialize<TokenResponseDto>(
-                content,
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
-            if (!string.IsNullOrEmpty(token?.AccessToken))
-                token.IsLogged = true;
-
-            return token;
-        }
-
-        // =========================
-        // HELPERS
-        // =========================
-
-        private static Dictionary<string, string> BuildTokenRequestForm(
-         ServiceAuthOptions cfg)
-        {
-            var form = new Dictionary<string, string> {
-                ["grant_type"] = cfg.GrantType,
-                ["client_id"] = cfg.ClientId,
-                ["client_secret"] = cfg.ClientSecret
-            };
-            if (!string.IsNullOrEmpty(cfg.Scope))
-                form["scope"] = cfg.Scope;
-            return form;
         }
     }
 }

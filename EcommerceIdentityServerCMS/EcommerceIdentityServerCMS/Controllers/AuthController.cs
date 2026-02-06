@@ -1,9 +1,11 @@
 ﻿using Duende.IdentityServer.Services;
-using EcommerceIdentityServerCMS.Models.DTOs.SignIn;
+using EcommerceIdentityServerCMS.Common.Exceptions;
+using EcommerceIdentityServerCMS.Models;
 using EcommerceIdentityServerCMS.Models.ViewModels.Accounts;
 using EcommerceIdentityServerCMS.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace EcommerceIdentityServerCMS.Controllers
 {
@@ -13,59 +15,86 @@ namespace EcommerceIdentityServerCMS.Controllers
     {
         private readonly IIdentityServerInteractionService _interaction;
         private readonly IAuthService _authService;
-        public AuthController(IAuthService authService, IIdentityServerInteractionService interaction)
+        private readonly ILogger<AuthController> _logger;
+        private readonly IInternalCacheService _internalCacheService;
+        public AuthController(IAuthService authService, IIdentityServerInteractionService interaction, ILogger<AuthController> logger
+            , IInternalCacheService internalCacheService)
         {
             _authService = authService;
             _interaction = interaction;
+            _logger = logger;
+            _internalCacheService = internalCacheService;
         }
 
+        /// <summary>
+        /// form login
+        /// </summary>
+        /// <param name="signInViewModel"></param>
+        /// <returns>call back identiy để thực hiện login</returns>
         [HttpPost("dang-nhap")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> SignIn([FromForm] SignInViewModel signInViewModel)
         {
-            var result = await _authService.AuthenticateInternal(signInViewModel);
             var context = await _interaction.GetAuthorizationContextAsync(signInViewModel.ReturnUrl);
-            var link = Url.Action(controller: "Login", action: "Error", values: signInViewModel.ReturnUrl ?? "/");
-            if (result == null)
+            bool isLocal = Url.IsLocalUrl(signInViewModel.ReturnUrl);
+
+            if (context == null && !isLocal)
             {
-                return Redirect(link);
-            }
-            await _authService.SignInIdentityUserAsync(result);
-            if (context != null)
-            {
-                return Redirect(signInViewModel.ReturnUrl);
+                return BadRequest(new { message = "Yêu cầu điều hướng không hợp lệ hoặc không an toàn." });
             }
 
-            return Redirect(link);
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new { message = "Dữ liệu không hợp lệ", errors = ModelState });
+            }
+
+            try
+            {
+                var result = await _authService.ProcessSignInAsync(signInViewModel);
+
+                if (!result.IsSuccess)
+                {
+                    // Trả về lỗi nghiệp vụ (Sai pass, user bị khóa...)
+                    return Unauthorized(new { message = result.Error ?? "Tài khoản hoặc mật khẩu không chính xác." });
+                }
+
+                return Redirect(signInViewModel.ReturnUrl ?? "/");
+            }
+            catch (UnauthorizedException ex)
+            {
+                // Bắt lỗi hệ thống nội bộ hỏng (Token CMS lỗi...) mà không làm crash app
+                _logger.LogCritical(ex, "Lỗi hệ thống xác thực nội bộ");
+                return StatusCode(503, new { message = ex.Message }); // 503 Service Unavailable
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi không xác định khi đăng nhập");
+                return StatusCode(500, new { message = "Có lỗi xảy ra, vui lòng thử lại sau." });
+            }
         }
 
-        [HttpPost("trao-doi-token")]
-        public async Task<IActionResult> Exchange([FromBody] ExchangeRequest request)
-        {
-            var resultToken = await _authService.ExchangeCodeForExternalToken(request);
-
-            return Ok(resultToken);
-        }
-
-
-
-        [HttpPost("dang-xuat-he-thong")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ConfirmLogout([FromForm] LogoutViewModel model)
         {
-            // Xóa Cookie của Identity Server
+
+            //xóa cache user
+            var sub = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? string.Empty;
+            var key = $"{AuthCacheOptions.CacheUserInfor}{sub}";
+            await _internalCacheService.RemoveAsync(key);
+            // 1️⃣ Sign out local cookie
             await HttpContext.SignOutAsync();
 
-            // Lấy thông tin ngữ cảnh để quay lại đúng CMS
+            // 2️⃣ Lấy thông tin logout context
             var logoutContext = await _interaction.GetLogoutContextAsync(model.LogoutId);
 
-            if (logoutContext != null && !string.IsNullOrEmpty(logoutContext.PostLogoutRedirectUri))
+            // 3️⃣ Redirect về client
+            if (!string.IsNullOrEmpty(logoutContext?.PostLogoutRedirectUri))
             {
-                // Quay về CMS (thông qua Gateway 7145)
                 return Redirect(logoutContext.PostLogoutRedirectUri);
             }
 
-            // Nếu không có thông tin quay về, đưa về trang chủ mặc định
-            return Redirect("/");
+            return RedirectToAction("LoggedOut");
         }
     }
 }

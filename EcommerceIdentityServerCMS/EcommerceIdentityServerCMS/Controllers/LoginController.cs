@@ -18,17 +18,24 @@ namespace EcommerceIdentityServerCMS.Controllers
             _configuration = configuration;
         }
 
-
         [HttpGet("dang-nhap-he-thong")]
-        public IActionResult Index(string returnUrl = "/")
+        public async Task<IActionResult> Index(string returnUrl)
         {
+            // 1. Kiểm tra xem request này có phải từ Client hợp lệ gửi sang không
+            var context = await _interaction.GetAuthorizationContextAsync(returnUrl);
             if (User.Identity?.IsAuthenticated == true)
             {
-                // Chuyển hướng về trang chủ hoặc returnUrl thay vì cho đăng nhập tiếp
-                return Redirect(string.IsNullOrEmpty(returnUrl) ? "/" : returnUrl);
+                if (context != null)
+                {
+                    return Redirect(returnUrl);
+                }
+                return Redirect("~/");
             }
-            var signInViewModel = new SignInViewModel();
-            signInViewModel.ReturnUrl = returnUrl;
+
+            var signInViewModel = new SignInViewModel {
+                ReturnUrl = returnUrl
+            };
+
             return View(signInViewModel);
         }
 
