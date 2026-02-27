@@ -24,7 +24,7 @@ public static class AuthenticationIdentityServer
             options.InstanceName = InstanceName;
         });
 
-        var builder = services.AddIdentityServer(options =>
+        services.AddIdentityServer(options =>
         {
 
             // --- CẤU HÌNH ĐƯỜNG DẪN LOGIN TẠI ĐÂY ---

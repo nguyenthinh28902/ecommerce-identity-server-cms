@@ -35,6 +35,7 @@ namespace EcommerceIdentityServerCMS.Controllers
             var signInViewModel = new SignInViewModel {
                 ReturnUrl = returnUrl
             };
+            signInViewModel.Password = "Gemini@123";
 
             return View(signInViewModel);
         }

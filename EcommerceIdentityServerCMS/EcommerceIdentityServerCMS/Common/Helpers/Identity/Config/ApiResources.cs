@@ -16,6 +16,12 @@ namespace EcommerceIdentityServerCMS.Common.Helpers.Identity.Config
                     // UserClaims giúp đính kèm thêm thông tin vào Access Token khi gọi API này
                     UserClaims = { "sub" },
                 },
+                new ApiResource("product.api", "Identity CMS Service API")
+                {
+                    Scopes = { "product.internal", "product.read", "product.write" },
+                    // UserClaims giúp đính kèm thêm thông tin vào Access Token khi gọi API này
+                    UserClaims = { "sub" },
+                }
               };
         }
     }
