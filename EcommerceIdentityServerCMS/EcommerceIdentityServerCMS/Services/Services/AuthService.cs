@@ -62,6 +62,7 @@ namespace EcommerceIdentityServerCMS.Services.Services
                 if (!response.IsSuccessStatusCode)
                 {
                     _logger.LogWarning("Xác thực thất bại tại User Service. Status: {StatusCode} {mess}", response.StatusCode, response.RequestMessage);
+                    _logger.LogWarning("Xác thực thất bại tại User Service. Status: {StatusCode} {mess}", response.StatusCode, token.AccessToken);
                     return Result<SignInResponseDto>.Failure("Tài khoản hoặc mật khẩu không chính xác.");
                 }
 
