@@ -70,8 +70,11 @@ namespace EcommerceIdentityServerCMS.Common.Helpers.Identity.Config
                         "user.read",
                         "user.write",
                         "product.read",
+                        "product.write",
                         "order.read",
-                        "order.write"
+                        "order.write",
+                        "payment.read",
+                        "payment.write"
                     },
 
                     AllowOfflineAccess = true, // Cho phép dùng Refresh Token

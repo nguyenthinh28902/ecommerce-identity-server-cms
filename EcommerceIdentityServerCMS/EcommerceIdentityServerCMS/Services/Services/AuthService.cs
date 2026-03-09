@@ -129,7 +129,8 @@ namespace EcommerceIdentityServerCMS.Services.Services
                 Email = user.Email,
                 Roles = user.Roles,
                 Scopes = user.Scopes,
-                WorkplaceId = user.WorkplaceId
+                WorkplaceId = user.WorkplaceId,
+                WorkplaceType = user.WorkplaceType
             };
 
             var cacheKey = $"{AuthCacheOptions.CacheUserInfor}{user.Id}";

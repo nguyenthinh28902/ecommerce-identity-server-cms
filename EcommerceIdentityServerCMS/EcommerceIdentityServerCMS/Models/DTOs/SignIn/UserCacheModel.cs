@@ -7,6 +7,7 @@
         public List<string> Roles { get; set; } = new();
         public List<string> Scopes { get; set; } = new();
         public int? WorkplaceId { get; set; }
+        public string WorkplaceType { get; set; } = string.Empty;
 
     }
 }

@@ -14,6 +14,8 @@
 
         // WorkplaceId có thể null nếu là Admin tổng không thuộc chi nhánh nào.
         public int? WorkplaceId { get; set; }
+        // WorkplaceType loại văn phòng trưc thuộc
+        public string WorkplaceType { get; set; } = string.Empty;
 
         // Danh sách các quyền (Scopes) mà User này được phép sử dụng.
         public List<string> Scopes { get; set; } = new();
