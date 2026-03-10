@@ -3,6 +3,8 @@
 ## Giới thiệu
 
 Hệ thống quản lý danh tính và cấp phép (Identity Provider) tập trung, xây dựng trên nền tảng **Duende IdentityServer**.
+### Thông tin chung của dự án
+[Thông tin chung dự án](https://github.com/nguyenthinh28902/mini-project-ecommerce).
 
 ## 🛠 Công nghệ sử dụng
 - **Framework:** .NET 8 / Duende IdentityServer
