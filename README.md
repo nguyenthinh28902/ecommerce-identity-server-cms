@@ -13,7 +13,7 @@ Hệ thống quản lý danh tính và cấp phép (Identity Provider) tập tru
 
 ## 🔄 Workflow (Luồng xác thực)
 ### Cấu hình xác thực tại Web
-[Xem tiếp]()
+[Xem tiếp](https://github.com/nguyenthinh28902/ecommerce-cms-web)
 
 ### Xác thực tại identity
 1. **Xác thực Client:** Người dùng từ Web/CMS được điều hướng đến Identity Server để thực hiện Login.
