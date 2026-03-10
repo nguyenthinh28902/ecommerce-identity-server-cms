@@ -102,10 +102,11 @@ Giảm bớt thông tin user trong token. [GatewayUserProfileService.cs](https:/
       }
   }
 ```
-### Cấu hình xác thực tại Getaway 
-[Xem tiếp]().
+### Xác thực tại Getaway 
+[Xem tiếp](https://github.com/nguyenthinh28902/ecommerce-api-gateway-cms).
+
 ### Xác thực tại Service (Product servcie)
-[Xem tiếp]().
+[Xem tiếp](https://github.com/nguyenthinh28902/Ecom.ProductService).
 
 ## Cấu hình khác của identity
 - Xử lý lấy token nội bộ cho Identity. [InternalTokenService](https://github.com/nguyenthinh28902/ecommerce-identity-server-cms/blob/main/EcommerceIdentityServerCMS/EcommerceIdentityServerCMS/Services/Services/InternalTokenService.cs). 
