@@ -28,10 +28,14 @@ namespace EcommerceIdentityServerCMS.Common.Helpers.Identity.Config
                 new ApiScope("payment.read", "View payment transactions"),
                 new ApiScope("payment.write", "Process payments or refunds"),
 
-                // Quyền cũ của bạn
+                // user
                 new ApiScope("user.internal", "User full access"),
                 new ApiScope("user.read", "User read information"),
                 new ApiScope("user.write", "User write information"),
+                // Customer
+                new ApiScope("customer.internal", "customer full access"),
+                new ApiScope("customer.read", "customer read information"),
+                new ApiScope("customer.write", "customer write information"),
             };
         }
     }

@@ -36,6 +36,7 @@ namespace EcommerceIdentityServerCMS.Common.Helpers.Identity.Config
                     {
                         // Chỉ add các quyền "Internal" để Gateway có quyền quản trị cao nhất khi gọi Service
                         "user.internal",
+                        "customer.internal",
                         "product.internal",
                         "order.internal",
                         "stock.internal",
@@ -69,6 +70,8 @@ namespace EcommerceIdentityServerCMS.Common.Helpers.Identity.Config
                         "offline_access",
                         "user.read",
                         "user.write",
+                        "customer.read",
+                        "customer.write",
                         "product.read",
                         "product.write",
                         "order.read",

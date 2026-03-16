@@ -33,7 +33,13 @@ namespace EcommerceIdentityServerCMS.Common.Helpers.Identity.Config
                     Scopes = { "payment.internal", "payment.read", "payment.write" },
                     // UserClaims giúp đính kèm thêm thông tin vào Access Token khi gọi API này
                     UserClaims = { "sub" },
+                },
+                new ApiResource("customer.api", "Identity CMS Service API")
+                {
+                    Scopes = { "customer.internal", "customer.read", "customer.write" },                 
+                    UserClaims = { "sub" }
                 }
+
               };
         }
     }
