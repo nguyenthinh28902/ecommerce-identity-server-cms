@@ -27,7 +27,7 @@ namespace EcommerceIdentityServerCMS.Common.Helpers
             });
             services.AddHttpClient<IAuthService, AuthService>(client =>
             {
-                client.BaseAddress = new Uri(configServiceUrl.EcommerceGatewayCMS);
+                client.BaseAddress = new Uri(configServiceUrl.EcommerceUserService);
             })
             .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler {
                 // Bỏ qua check SSL trong môi trường dev

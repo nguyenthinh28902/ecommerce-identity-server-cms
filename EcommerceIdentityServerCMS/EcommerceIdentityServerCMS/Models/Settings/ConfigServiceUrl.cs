@@ -5,5 +5,6 @@
         public string EcommerceGatewayCMS { get; set; } = string.Empty;
 
         public string EcommerceMVCCMS { get; set; } = string.Empty;
+        public string EcommerceUserService { get; set; } = string.Empty;
     }
 }

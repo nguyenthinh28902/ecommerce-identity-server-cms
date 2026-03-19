@@ -55,7 +55,8 @@ namespace EcommerceIdentityServerCMS.Controllers
                 if (!result.IsSuccess)
                 {
                     // Trả về lỗi nghiệp vụ (Sai pass, user bị khóa...)
-                    return Unauthorized(new { message = result.Error ?? "Tài khoản hoặc mật khẩu không chính xác." });
+                    return RedirectToAction("Index", "Login", new { returnUrl = signInViewModel.ReturnUrl });
+
                 }
 
                 return Redirect(signInViewModel.ReturnUrl ?? "/");

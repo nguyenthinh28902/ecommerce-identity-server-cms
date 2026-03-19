@@ -72,7 +72,7 @@ namespace EcommerceIdentityServerCMS.Services.Services
 
                 // 5. Lưu vào Redis thông qua Service
                 // Trừ đi 60 giây trừ hao thời gian mạng (Network Latency)
-                await _internalCacheService.SetAsync(cacheKey, token, tokenResponse.ExpiresIn - 60);
+                await _internalCacheService.SetAsync(cacheKey, token, 4);
 
                 return token;
             }
