@@ -1,4 +1,5 @@
-﻿using EcommerceIdentityServerCMS.Models.Settings;
+﻿using EcommerceIdentityServerCMS.Models;
+using EcommerceIdentityServerCMS.Models.Settings;
 
 namespace EcommerceIdentityServerCMS.Common.Helpers
 {
@@ -8,6 +9,8 @@ namespace EcommerceIdentityServerCMS.Common.Helpers
         {
             services.Configure<InternalAuthOptions>(configuration.GetSection(nameof(InternalAuthOptions)));
             services.Configure<ConfigServiceUrl>(configuration.GetSection(nameof(ConfigServiceUrl)));
+            services.Configure<RedisConnection>(configuration.GetSection(nameof(RedisConnection)));
+
             return services;
         }
     }

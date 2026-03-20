@@ -2,6 +2,7 @@
 using EcommerceIdentityServerCMS.Services.Interfaces;
 using EcommerceIdentityServerCMS.Services.Services;
 using Microsoft.EntityFrameworkCore;
+using StackExchange.Redis;
 using System.Reflection;
 
 public static class AuthenticationIdentityServer
@@ -17,11 +18,20 @@ public static class AuthenticationIdentityServer
         var RedisConnectionString = configuration["RedisConnection:RedisConnectionString"];
         var InstanceName = configuration["RedisConnection:InstanceName"];
 
+
         // 1. Cấu hình Redis Cache cho IdentityServer (Lưu trữ các Grant, Token, v.v.)
         services.AddStackExchangeRedisCache(options =>
         {
             options.Configuration = RedisConnectionString;
             options.InstanceName = InstanceName;
+            var configOptions = ConfigurationOptions.Parse(RedisConnectionString ?? string.Empty);
+            configOptions.ConnectTimeout = 1000;
+            configOptions.SyncTimeout = 500;
+            configOptions.AsyncTimeout = 500;
+            configOptions.ConnectRetry = 0;
+            configOptions.AbortOnConnectFail = false;
+
+            options.ConfigurationOptions = configOptions;
         });
 
         services.AddIdentityServer(options =>

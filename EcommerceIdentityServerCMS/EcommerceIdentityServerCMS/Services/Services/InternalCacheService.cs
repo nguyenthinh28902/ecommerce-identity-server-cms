@@ -1,5 +1,7 @@
-﻿using EcommerceIdentityServerCMS.Services.Interfaces;
+﻿using EcommerceIdentityServerCMS.Models;
+using EcommerceIdentityServerCMS.Services.Interfaces;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Options;
 using System.Text.Json;
 
 namespace EcommerceIdentityServerCMS.Services.Services
@@ -8,13 +10,15 @@ namespace EcommerceIdentityServerCMS.Services.Services
     {
         private readonly ILogger<InternalCacheService> _logger;
         private readonly IDistributedCache _cache;
+        private readonly RedisConnection _redisConnection;
         // Đây là "vùng tên" riêng cho Identity để không lẫn với UserSession của Gateway
         private const string IDENTITY_INTERNAL_PREFIX = "InternalAuth:";
 
-        public InternalCacheService(IDistributedCache cache, ILogger<InternalCacheService> logger)
+        public InternalCacheService(IDistributedCache cache, ILogger<InternalCacheService> logger, IOptions<RedisConnection> options)
         {
             _cache = cache;
             _logger = logger;
+            _redisConnection = options.Value;
         }
 
         /// <summary>
@@ -27,6 +31,7 @@ namespace EcommerceIdentityServerCMS.Services.Services
         /// <returns></returns>
         public async Task SetAsync<T>(string key, T value, int expirationSeconds) where T : class
         {
+            if (!_redisConnection.Enabled) return;
             try
             {
                 var cacheKey = $"{IDENTITY_INTERNAL_PREFIX}{key}";
@@ -49,6 +54,7 @@ namespace EcommerceIdentityServerCMS.Services.Services
         // Lấy dữ liệu từ Cache
         public async Task<T?> GetAsync<T>(string key) where T : class
         {
+            if (!_redisConnection.Enabled) return null;
             try
             {
                 var cacheKey = $"{IDENTITY_INTERNAL_PREFIX}{key}";
@@ -69,6 +75,7 @@ namespace EcommerceIdentityServerCMS.Services.Services
         // xóa cache
         public async Task RemoveAsync(string key)
         {
+            if (!_redisConnection.Enabled) return;
             try
             {
                 await _cache.RemoveAsync($"{IDENTITY_INTERNAL_PREFIX}{key}");
