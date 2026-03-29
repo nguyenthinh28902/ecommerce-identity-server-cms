@@ -48,7 +48,7 @@ new Client {
 ### 2. Session Management & Token Optimization (Quản lý phiên & Tối ưu Token)
 Triển khai cơ chế lưu trữ tập trung tại Redis và tối ưu hóa kích thước JWT để giảm tải băng thông cho Gateway.
 
-* **File xử lý:** [AuthService.cs](https://github.com/nguyenthinh28902/ecommerce-identity-server-cms/blob/main/EcommerceIdentityServerCMS/EcommerceIdentityServerCMS/Services/Services/AuthService.cs) & [GatewayUserProfileService.cs](https://github.com/nguyenthinh28902/ecommerce-identity-server-cms/blob/main/EcommerceIdentityServerCMS/EcommerceIdentityServerCMS/Services/Services/GatewayUserProfileService.cs)
+* **File xử lý:** [AuthService.cs](https://github.com/nguyenthinh28902/ecommerce-identity-server-cms/blob/main/EcommerceIdentityServerCMS/EcommerceIdentityServerCMS/Services/Services/AuthService.cs#L118) & [GatewayUserProfileService.cs](https://github.com/nguyenthinh28902/ecommerce-identity-server-cms/blob/main/EcommerceIdentityServerCMS/EcommerceIdentityServerCMS/Services/Services/GatewayUserProfileService.cs#L17)
 * **Giải pháp:** * Toàn bộ Claims chi tiết (Roles, Scopes, Workplace) được lưu vào Redis.
     * Access Token trả về Client chỉ chứa thông tin định danh tối giản (`sub`), buộc Gateway phải tham chiếu vào Cache để thực hiện phân quyền.
 
@@ -69,7 +69,7 @@ public async Task EstablishUserSessionAsync(SignInResponseDto user) {
 ### 3. Identity Infrastructure Configuration (Cấu hình hạ tầng Identity)
 Thiết lập bộ lưu trữ Database cho cấu hình hệ thống và quản lý vòng đời Token tự động.
 
-* **File cấu hình:** [AuthenticationIdentityServer.cs](https://github.com/nguyenthinh28902/ecommerce-identity-server-cms/blob/main/EcommerceIdentityServerCMS/EcommerceIdentityServerCMS/Common/Helpers/Identity/AuthenticationIdentityServer.cs)
+* **File cấu hình:** [AuthenticationIdentityServer.cs](https://github.com/nguyenthinh28902/ecommerce-identity-server-cms/blob/main/EcommerceIdentityServerCMS/EcommerceIdentityServerCMS/Common/Helpers/Identity/AuthenticationIdentityServer.cs#L37)
 * **Giải pháp:** Sử dụng `AddConfigurationStore` và `AddOperationalStore` để tách biệt dữ liệu cấu hình và dữ liệu vận hành. Kích hoạt `EnableTokenCleanup` để tự động dọn dẹp các mã định danh hết hạn.
 
 ```csharp
